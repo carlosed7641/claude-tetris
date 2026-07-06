@@ -1,0 +1,82 @@
+name: Claude Issue Triage
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Issue Triage
+        id: claude-triage
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: '--allowed-tools "Bash(gh label:*),Bash(gh issue:*)"'
+          prompt: |
+            Estás analizando el issue #${{ github.event.issue.number }} del repositorio ${{ github.repository }}.
+
+            Contexto del proyecto: es un Tetris de una sola página en JavaScript vanilla
+            (archivos: game.js, index.html, style.css). Usa el CLAUDE.md del repo para
+            entender la arquitectura (modelo de tablero, piezas, loop del juego,
+            colisiones, wall kicks, clearLines, scoring, nivel/velocidad, ghost piece).
+
+            Sigue estos pasos:
+
+            1. Lee el issue con `gh issue view ${{ github.event.issue.number }} --json title,body,labels,comments`
+               para obtener título, cuerpo, labels actuales y comentarios existentes.
+
+            2. Etiquetado: elige las labels apropiadas de este set estándar:
+               - bug (color d73a4a, "Algo no funciona como se espera")
+               - enhancement (color a2eeef, "Mejora sobre una funcionalidad existente")
+               - feature (color 0e8a16, "Nueva funcionalidad")
+               - question (color d876e3, "Pregunta o duda")
+               - documentation (color 0075ca, "Relacionado con documentación")
+               - gameplay (color fbca04, "Relacionado con la mecánica o reglas del juego")
+               - ui (color c5def5, "Relacionado con la interfaz visual o estilos")
+               - performance (color e99695, "Relacionado con rendimiento o fluidez")
+
+               Antes de aplicar labels, verifica con `gh label list` cuáles ya existen en el
+               repo. Crea con `gh label create <nombre> --color <hex> --description "<desc>"`
+               únicamente las que falten (ignora el error si ya existe). Luego aplica las
+               labels que correspondan al issue con
+               `gh issue edit ${{ github.event.issue.number }} --add-label "<nombre>"`.
+               No elimines labels que ya tenga el issue salvo que sean claramente incorrectas.
+
+            3. Diagnóstico: redacta en **español** un diagnóstico general del problema o
+               petición, incluyendo:
+               - Resumen breve del problema/petición planteado en el issue.
+               - Componente(s) del código probablemente afectado(s) (game.js, index.html,
+                 style.css) y qué función/sección específica (p.ej. clearLines, tryRotate,
+                 loop, spawn, draw, etc.) según la arquitectura descrita en CLAUDE.md.
+               - Causa probable o hipótesis de por qué ocurre (si es un bug) o qué requiere
+                 el cambio (si es una feature/mejora).
+               - Enfoque de solución de alto nivel, con pasos concretos que sirvan de base
+                 para implementar el fix o la funcionalidad.
+
+               El comentario debe empezar exactamente con este encabezado como marcador:
+               `## 🔍 Diagnóstico automático (Claude)`
+
+            4. Antes de publicar, revisa los comentarios obtenidos en el paso 1: si ya existe
+               un comentario tuyo que empiece con ese mismo encabezado (de una ejecución
+               anterior tras una edición del issue), actualízalo con
+               `gh issue comment ${{ github.event.issue.number }} --edit-last --body "<nuevo diagnóstico>"`
+               en vez de crear uno nuevo. Si no existe, publícalo con
+               `gh issue comment ${{ github.event.issue.number }} --body "<diagnóstico>"`.
+
+               Nota: `--edit-last` edita el último comentario del usuario actual en el
+               issue; si el último comentario tuyo no es el de diagnóstico (por ejemplo,
+               por interacciones distintas), en su lugar identifica el comentario correcto
+               con `gh issue view ${{ github.event.issue.number }} --json comments` y
+               edítalo directamente con `gh api` usando su id
+               (`PATCH /repos/${{ github.repository }}/issues/comments/<id>`).

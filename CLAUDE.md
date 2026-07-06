@@ -21,8 +21,8 @@ There is no build, lint, or test tooling in this repo — changes are verified b
 
 Everything lives in one file as top-level `const`/`let` and functions operating on shared module-level state (`board`, `current`, `next`, `score`, `lines`, `level`, `paused`, `gameOver`, `dropAccum`, `dropInterval`).
 
-- **Board model**: `ROWS × COLS` matrix; each cell is `0` (empty) or an integer 1–7 indexing into `COLORS`/`PIECES` for the piece that placed it.
-- **Pieces**: each of the 7 standard tetrominoes is a square matrix in `PIECES`. Rotation (`rotateCW`) is a transpose + row-reverse, not a lookup table of rotation states.
+- **Board model**: `ROWS × COLS` matrix; each cell is `0` (empty) or an integer 1–8 indexing into `COLORS`/`PIECES` for the piece that placed it.
+- **Pieces**: the 7 standard tetrominoes plus a non-standard 8th piece, the "nut" (`tuerca`), are each a square matrix in `PIECES`. Rotation (`rotateCW`) is a transpose + row-reverse, not a lookup table of rotation states. The nut is a 3×3 ring (`[[8,8,8],[8,0,8],[8,8,8]]`) with an empty center cell — `collide`/`merge` treat that `0` as empty like any other gap, so a line through a locked nut can't clear until another piece fills the hole. It's drawn specially via `drawNut()` (a gray plate with a dark circle) wherever it's the active/ghost/preview piece; once locked on the board it renders as plain blocks via the normal per-cell loop.
 - **Collision** (`collide`): checks a shape at an offset against board bounds and already-locked cells.
 - **Wall kicks** (`tryRotate`): on rotation collision, retries the rotated shape at horizontal offsets (±1, ±2 columns) before giving up.
 - **Game loop** (`loop`, driven by `requestAnimationFrame`): accumulates elapsed time in `dropAccum`; when it exceeds `dropInterval`, the piece drops a row or `lockPiece()` fires.

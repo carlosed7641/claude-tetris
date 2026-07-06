@@ -13,6 +13,7 @@ const COLORS = [
   '#e57373', // Z - red
   '#9fa8da', // J - pale indigo
   '#ffb74d', // L - orange
+  '#90a4ae', // Nut - metallic gray
 ];
 
 const PIECES = [
@@ -24,6 +25,7 @@ const PIECES = [
   [[5,5,0],[0,5,5],[0,0,0]],                  // Z
   [[6,0,0],[6,6,6],[0,0,0]],                  // J
   [[0,0,7],[7,7,7],[0,0,0]],                  // L
+  [[8,8,8],[8,0,8],[8,8,8]],                  // Nut (tuerca)
 ];
 
 const LINE_SCORES = [0, 100, 300, 500, 800];
@@ -65,7 +67,7 @@ function createBoard() {
 }
 
 function randomPiece() {
-  const type = Math.floor(Math.random() * 7) + 1;
+  const type = Math.floor(Math.random() * 8) + 1;
   const shape = PIECES[type].map(row => [...row]);
   return { type, shape, x: Math.floor(COLS / 2) - Math.floor(shape[0].length / 2), y: 0 };
 }
@@ -186,6 +188,20 @@ function drawBlock(context, x, y, colorIndex, size, alpha) {
   context.globalAlpha = 1;
 }
 
+function drawNut(context, ox, oy, size, alpha) {
+  context.globalAlpha = alpha ?? 1;
+  context.fillStyle = COLORS[8];
+  context.fillRect(ox * size + 1, oy * size + 1, size * 3 - 2, size * 3 - 2);
+  context.fillStyle = 'rgba(255,255,255,0.12)';
+  context.fillRect(ox * size + 1, oy * size + 1, size * 3 - 2, 4);
+  const cx = (ox + 1.5) * size, cy = (oy + 1.5) * size;
+  context.fillStyle = 'rgba(0,0,0,0.55)';
+  context.beginPath();
+  context.arc(cx, cy, size * 0.42, 0, Math.PI * 2);
+  context.fill();
+  context.globalAlpha = 1;
+}
+
 function drawGrid() {
   ctx.strokeStyle = GRID_COLORS[document.body.dataset.theme] || GRID_COLORS.light;
   ctx.lineWidth = 0.5;
@@ -214,15 +230,23 @@ function draw() {
 
   // ghost
   const gy = ghostY();
-  for (let r = 0; r < current.shape.length; r++)
-    for (let c = 0; c < current.shape[r].length; c++)
-      if (current.shape[r][c])
-        drawBlock(ctx, current.x + c, gy + r, current.shape[r][c], BLOCK, 0.2);
+  if (current.type === 8) {
+    drawNut(ctx, current.x, gy, BLOCK, 0.2);
+  } else {
+    for (let r = 0; r < current.shape.length; r++)
+      for (let c = 0; c < current.shape[r].length; c++)
+        if (current.shape[r][c])
+          drawBlock(ctx, current.x + c, gy + r, current.shape[r][c], BLOCK, 0.2);
+  }
 
   // current piece
-  for (let r = 0; r < current.shape.length; r++)
-    for (let c = 0; c < current.shape[r].length; c++)
-      drawBlock(ctx, current.x + c, current.y + r, current.shape[r][c], BLOCK);
+  if (current.type === 8) {
+    drawNut(ctx, current.x, current.y, BLOCK);
+  } else {
+    for (let r = 0; r < current.shape.length; r++)
+      for (let c = 0; c < current.shape[r].length; c++)
+        drawBlock(ctx, current.x + c, current.y + r, current.shape[r][c], BLOCK);
+  }
 }
 
 function drawNext() {
@@ -231,9 +255,13 @@ function drawNext() {
   const shape = next.shape;
   const offX = Math.floor((4 - shape[0].length) / 2);
   const offY = Math.floor((4 - shape.length) / 2);
-  for (let r = 0; r < shape.length; r++)
-    for (let c = 0; c < shape[r].length; c++)
-      drawBlock(nextCtx, offX + c, offY + r, shape[r][c], NB);
+  if (next.type === 8) {
+    drawNut(nextCtx, offX, offY, NB);
+  } else {
+    for (let r = 0; r < shape.length; r++)
+      for (let c = 0; c < shape[r].length; c++)
+        drawBlock(nextCtx, offX + c, offY + r, shape[r][c], NB);
+  }
 }
 
 function endGame() {

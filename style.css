@@ -150,6 +150,22 @@ body {
   border-radius: 4px;
 }
 
+.skin-select {
+  background: var(--kbd-bg);
+  border: 1px solid var(--kbd-border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--fg);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.skin-select:hover {
+  background: var(--restart-hover);
+}
+
 /* ---- Controles ---- */
 .controls ul {
   list-style: none;
